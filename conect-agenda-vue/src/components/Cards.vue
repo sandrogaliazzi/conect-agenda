@@ -1,30 +1,133 @@
 <script setup>
-const { data } = defineProps(["data"]);
+import { ref, computed, onMounted, watch } from "vue";
+import { rules } from "./inputRules";
+import Tag from "./Tag.vue";
+import { collection, onSnapshot } from "firebase/firestore";
+import firestore from "@/firebase";
+import { getFirestoreCollectionDocs } from "@/firebase/firestore";
 
-const colors = ["primary", "secondary", "red", "green", "indigo", "orange"];
+const { data, panel } = defineProps(["data", "panel"]);
+const emit = defineEmits(["updateCard", "deleteCard", "updateTags"]);
+
+const showForm = ref(false);
+const formData = ref(data.card_content);
+const hoveringOn = ref(null);
+const tags = ref([]);
+const reactiveTags = ref(data.tags);
+
+const fetchTags = async () => {
+  tags.value = await getFirestoreCollectionDocs("tags");
+};
+
+onMounted(async () => {
+  await fetchTags();
+});
+
+const tagsCollection = collection(firestore, "tags");
+
+const unsub = onSnapshot(tagsCollection, (querySnapshot) => {
+  querySnapshot.docChanges().forEach((_) => {
+    fetchTags();
+  });
+});
+
+watch(
+  () => data,
+  (newVal) => {
+    formData.value = newVal.card_content;
+    reactiveTags.value = newVal.tags;
+  },
+  { deep: true }
+);
+
+const cardTags = computed(() => {
+  return tags.value.filter((tag) =>
+    reactiveTags.value.find((t) => t.id === tag.id)
+  );
+});
+
+const handleSubmit = () => {
+  emit("updateCard", {
+    panelId: panel,
+    id: data.id,
+    content: formData,
+  });
+
+  showForm.value = false;
+};
+
+const handleDelete = () => {
+  if (confirm("Deseja realmente deletar esse cartão?")) {
+    emit("deleteCard", { panelId: panel, id: data.id });
+  }
+};
+
+const setTags = async (tags) => {
+  emit("updateTags", {
+    panelId: panel,
+    id: data.id,
+    content: tags,
+  });
+};
 </script>
 
 <template>
-  <v-card color="grey-darken-3 mt-3">
-    <v-card-title class="d-flex justify-space-between">
-      <template class="d-flex flex-wrap">
-        <v-chip
-          v-for="tag in data.tags"
-          :key="tag"
-          :color="colors[Math.floor(Math.random() * 7)]"
-          class="ma-2"
-          label
-          size="small"
-          variant="flat"
-        >
-          <v-icon icon="mdi-label" start></v-icon>
-          {{ tag }}</v-chip
-        >
-        <v-btn icon="mdi-plus" variant="plain" size="x-small" />
+  <v-card
+    color="grey-darken-3 mt-3"
+    rounded="xl"
+    @mouseenter="hoveringOn = data.id"
+    @mouseleave="hoveringOn = null"
+    link
+    max-width="300"
+  >
+    <v-card-title class="d-flex justify-space-between align-center">
+      <template class="d-flex align-center">
+        <div v-if="data.tags" class="d-flex align-center flex-wrap ga-2">
+          <v-chip
+            v-for="tag in cardTags"
+            :key="tag.firestore_id"
+            :color="tag.color"
+            size="x-small"
+            variant="flat"
+            class="pa-2"
+          >
+            <span class="font-weight-bold">
+              {{ tag.label.toUpperCase() }}
+            </span>
+          </v-chip>
+        </div>
+        <Tag @tag-selection="(tags) => setTags(tags)" />
       </template>
+
+      <v-btn
+        v-show="hoveringOn === data.id"
+        icon="mdi-delete"
+        variant="plain"
+        class="align-self-start"
+        size="x-small"
+        @click="handleDelete"
+      />
     </v-card-title>
     <v-card-text>
-      {{ data.card_content }}
+      <div v-if="!showForm" @click="showForm = true">
+        <span>
+          {{ data.card_content.toUpperCase() }}
+        </span>
+        <span v-if="data.created_by">
+          <v-badge :content="data.created_by" floating offset-x="-15"></v-badge>
+        </span>
+      </div>
+      <template v-else>
+        <v-form @submit.prevent="handleSubmit">
+          <v-text-field
+            autofocus
+            v-model="formData"
+            variant="underlined"
+            :rules="rules"
+            @blur="showForm = false"
+          ></v-text-field>
+        </v-form>
+      </template>
     </v-card-text>
   </v-card>
 </template>

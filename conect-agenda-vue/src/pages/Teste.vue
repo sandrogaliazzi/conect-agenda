@@ -1,3 +1,15 @@
+<script setup>
+definePage({
+  meta: {
+    layout: "login",
+  },
+});
+</script>
+
 <template>
-  <h1>hello world</h1>
+  <v-card title="Card title" subtitle="Subtitle" text="...">
+    <v-card-actions>
+      <v-btn>Click me</v-btn>
+    </v-card-actions>
+  </v-card>
 </template>

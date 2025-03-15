@@ -1,28 +1,67 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { getAgenda } from "@/firebase/firestore";
+import { ref, watch } from "vue";
+import {
+  updateFirestoreDoc,
+  getDocumentsByAgendaId,
+} from "@/firebase/firestore";
 import firestore from "@/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-
+import { useAppStore } from "@/stores/app";
 import Panels from "./Panels.vue";
+import { storeToRefs } from "pinia";
+import AddPanel from "./AddPanel.vue";
 
-const firestoreData = ref([]);
+const store = useAppStore();
+const key = ref(1);
+const services = ref([]);
+
+const { hasTagUpdate, selectedAgenda } = storeToRefs(store);
 
 const servicesCollection = collection(firestore, "services");
 
+const getServicesByAgendaId = async (id) => {
+  services.value = await getDocumentsByAgendaId(id);
+};
+
 const getFirestoreData = async () => {
-  firestoreData.value = await getAgenda();
+  getServicesByAgendaId(selectedAgenda.value.id);
 };
 
 const unsub = onSnapshot(servicesCollection, (querySnapshot) => {
-  querySnapshot.docChanges().forEach((change) => {
+  querySnapshot.docChanges().forEach((_) => {
     getFirestoreData();
   });
 });
 
-onMounted(async () => {
-  firestoreData.value = await getAgenda();
+watch(hasTagUpdate, () => {
+  if (store.hasTagUpdate) {
+    key.value++;
+    store.setUpdate(false);
+  }
 });
+
+watch(selectedAgenda, (val) => {
+  getServicesByAgendaId(val.id);
+});
+
+const handleTitleEdit = async (data) => {
+  const { panel, title } = data;
+
+  const oldPanelRef = services.value.find(
+    (doc) => doc.panel_id === panel.panel_id
+  );
+
+  if (!oldPanelRef) return;
+
+  oldPanelRef.title = title;
+
+  try {
+    await updateFirestoreDoc(oldPanelRef.id, oldPanelRef, "services");
+  } catch (error) {
+    alert("erro ao editar painél");
+    throw error;
+  }
+};
 </script>
 
 <template>
@@ -33,7 +72,13 @@ onMounted(async () => {
   >
     <v-row align="start" class="pt-5">
       <v-col cols="12" class="d-flex align-start ga-3">
-        <Panels :data="firestoreData" v-if="firestoreData.length > 0" />
+        <Panels
+          :data="services"
+          :key="key"
+          v-if="services.length > 0"
+          @title-edit="(panel) => handleTitleEdit(panel)"
+        />
+        <AddPanel />
       </v-col>
     </v-row>
   </v-container>

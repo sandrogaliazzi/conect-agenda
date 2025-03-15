@@ -1,19 +1,21 @@
 <script setup>
 import { ref } from "vue";
+import { rules } from "./inputRules";
+import { randomId } from "@/firebase/firestore";
+import { useAuth } from "@/composables/auth";
 
-const emit = defineEmits(["closeForm"]);
+const { userName } = useAuth();
+
+const emit = defineEmits(["closeForm", "submitForm"]);
+const { panel } = defineProps(["panel"]);
 
 const formData = ref(null);
-
-const rules = [
-  (value) => {
-    if (value) return true;
-    return "Este campo é obrigatório";
-  },
-];
-
 const handleSubmit = () => {
-  console.log(formData.value);
+  emit("submitForm", {
+    card_content: formData.value,
+    id: randomId(),
+    created_by: userName,
+  });
 };
 </script>
 <template>
