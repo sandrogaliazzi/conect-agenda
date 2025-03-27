@@ -14,7 +14,7 @@ const users = ref([
   "marcelo",
   "tainan",
   "william",
-  "weliington",
+  "wellington",
   "leonardo",
   "joao",
   "gabriel",
@@ -23,6 +23,14 @@ const users = ref([
   "janice",
   "orjana",
   "felipe",
+  "julia",
+  "angelicao",
+  "luisfelipe",
+  "douglas",
+  "jessica",
+  "fabio",
+  "dionatan",
+  "vinicius",
 ]);
 const selectedUsers = ref([]);
 

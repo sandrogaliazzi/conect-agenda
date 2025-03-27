@@ -9,16 +9,27 @@ import { collection, onSnapshot } from "firebase/firestore";
 import firestore from "@/firebase";
 import TagCreator from "./TagCreator.vue";
 import { useAppStore } from "@/stores/app";
+
+const { cardId, cardTags } = defineProps(["cardId", "cardTags"]);
+
 const store = useAppStore();
 
 const dialog = ref(false);
 const tags = ref([]);
-const tagSelection = ref([]);
+const tagSelection = ref(cardTags ? cardTags : []);
 const selectedTag = ref({
   label: "",
   color: "",
 });
 const query = ref("");
+
+const tagFilter = ref(true);
+
+watch(tagFilter, (val) => {
+  if (val) {
+    tags.value = tags.value.filter((tag) => tag.suporte);
+  } else getFirestoreTags();
+});
 
 const filterResults = computed(() => {
   return tags.value.filter((t) => t.label.includes(query.value));
@@ -34,10 +45,8 @@ const getFirestoreTags = async () => {
   tags.value = await getFirestoreCollectionDocs("tags");
 };
 
-const unsub = onSnapshot(tagsCollection, (querySnapshot) => {
-  querySnapshot.docChanges().forEach((_) => {
-    getFirestoreTags();
-  });
+const unsub = onSnapshot(tagsCollection, (_) => {
+  getFirestoreTags();
 });
 
 watch(selectedTag, () => {
@@ -46,8 +55,28 @@ watch(selectedTag, () => {
   }
 });
 
+const setExpireTimeToTags = (tags) => {
+  console.log(tags);
+  const filterTagByLabel = tags.filter(
+    (tag) => tag.label == "RESERVADO" && !tag.expireTime
+  );
+
+  if (!filterTagByLabel.length) return tags;
+
+  const data = new Date();
+
+  const expireTime = data.setHours(data.getHours() + 1);
+
+  return filterTagByLabel.map((tag) => {
+    return {
+      ...tag,
+      expireTime,
+    };
+  });
+};
+
 watch(tagSelection, () => {
-  emit("tagSelection", tagSelection.value);
+  emit("tagSelection", setExpireTimeToTags(tagSelection.value));
 });
 
 const saveNewTag = async (tag) => {
@@ -74,6 +103,14 @@ const saveNewTag = async (tag) => {
         <v-divider class="mt-3"></v-divider>
 
         <v-card-text class="px-4" style="height: 400px" v-if="tags.length > 0">
+          <div class="d-flex ga-2">
+            <v-switch
+              v-model="tagFilter"
+              color="primary"
+              label="suporte"
+              hide-details
+            ></v-switch>
+          </div>
           <v-text-field
             variant="underlined"
             append-icon="mdi-magnify"

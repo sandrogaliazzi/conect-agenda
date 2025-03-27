@@ -9,7 +9,7 @@ import { storeToRefs } from "pinia";
 import AddPanelForm from "./AddPanelForm.vue";
 
 const store = useAppStore();
-const { selectedAgenda } = storeToRefs(store);
+const { selectedAgenda, lastIndex } = storeToRefs(store);
 
 const emit = defineEmits(["createPanel"]);
 
@@ -26,6 +26,7 @@ const handleFormSubmit = async () => {
       title: newPanelTitle.value,
       cards: [],
       history_logs: [],
+      order: lastIndex.value,
     },
     "services"
   );

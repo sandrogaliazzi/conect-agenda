@@ -6,11 +6,20 @@ import { useAuth } from "@/composables/auth";
 export const useAppStore = defineStore("app", () => {
   const hasTagUpdate = ref(false);
 
+  const lastIndex = ref(null);
+
+  function setLastIndex(val) {
+    lastIndex.value = val;
+  }
+
   const { user } = useAuth();
 
-  const selectedAgenda = ref({});
+  const selectedAgenda = ref(
+    JSON.parse(localStorage.getItem("agenda")) || null
+  );
 
   function setAgenda(val) {
+    localStorage.setItem("agenda", JSON.stringify(val));
     selectedAgenda.value = val;
   }
 
@@ -30,14 +39,14 @@ export const useAppStore = defineStore("app", () => {
 
     const lastAgenda = userAgendas[0];
     setBluePrints(agendas);
-    return lastAgenda;
+    if (!selectedAgenda.value) setAgenda(lastAgenda);
   }
 
   function setUpdate(val) {
     hasTagUpdate.value = val;
   }
 
-  setAgendas().then((agenda) => setAgenda(agenda));
+  setAgendas().then();
 
   return {
     hasTagUpdate,
@@ -46,5 +55,7 @@ export const useAppStore = defineStore("app", () => {
     setAgenda,
     blueprints,
     setAgendas,
+    lastIndex,
+    setLastIndex,
   };
 });

@@ -9,6 +9,8 @@ import {
   deleteDoc,
   where,
   orderBy,
+  setDoc,
+  limit,
 } from "firebase/firestore";
 
 export const getFirestoreCollectionDocs = async (collectionName) => {
@@ -84,7 +86,7 @@ export const getDocumentsByAgendaId = async (id) => {
     const q = query(
       collection(firestore, "services"),
       where("agenda_id", "==", id),
-      orderBy("date", "asc")
+      orderBy("order", "asc")
     );
     const querySnapshot = await getDocs(q);
 
@@ -100,5 +102,17 @@ export const getDocumentsByAgendaId = async (id) => {
   } catch (error) {
     console.error("Erro ao buscar documentos:", error);
     return [];
+  }
+};
+
+export const setFirestoreDoc = async (docId, data, collectionName) => {
+  try {
+    const docRef = doc(firestore, collectionName, docId);
+    await setDoc(docRef, data);
+    console.log(
+      `Documento ${docId} salvo com sucesso na coleção ${collectionName}`
+    );
+  } catch (error) {
+    console.error("Erro ao salvar o documento:", error);
   }
 };

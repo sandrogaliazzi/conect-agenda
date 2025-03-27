@@ -41,10 +41,8 @@ const getAgendas = async () =>
 
 const agendaColletion = collection(firestore, "agendas");
 
-const unsub = onSnapshot(agendaColletion, (querySnapshot) => {
-  querySnapshot.docChanges().forEach((_) => {
-    getAgendas();
-  });
+const unsub = onSnapshot(agendaColletion, (_) => {
+  getAgendas();
 });
 
 onMounted(() => {
@@ -144,7 +142,7 @@ const selectNewAgenda = (agenda) => {
           <v-btn
             size="small"
             variant="text"
-            v-user="['marcelo', 'sandro', 'tainan']"
+            v-user="['marcelo', 'sandro', 'tainan', 'leonardo']"
           >
             <v-icon>mdi-dots-horizontal</v-icon>
             <v-menu activator="parent">

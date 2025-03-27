@@ -62,6 +62,16 @@ const handleDelete = () => {
   }
 };
 
+const upperCaseTags = computed(() => {
+  if (!data.tags) return [];
+  return data.tags.map((tag) => {
+    return {
+      ...tag,
+      label: tag.label.toUpperCase(),
+    };
+  });
+});
+
 const setTags = async (tags) => {
   emit("updateTags", {
     panelId: panel,
@@ -96,7 +106,11 @@ const setTags = async (tags) => {
             </span>
           </v-chip>
         </div>
-        <Tag @tag-selection="(tags) => setTags(tags)" />
+        <Tag
+          @tag-selection="(tags) => setTags(tags)"
+          :card-id="data.id"
+          :card-tags="upperCaseTags"
+        />
       </template>
 
       <v-btn

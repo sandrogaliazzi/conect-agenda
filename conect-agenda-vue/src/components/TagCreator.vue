@@ -22,9 +22,10 @@ function resetData() {
 const handleSubmit = () => {
   if (valid.value) {
     emit("newTagAdded", {
-      label: label.value,
+      label: label.value.toUpperCase(),
       color: color.value,
       id: id.value,
+      suporte: true,
     });
   }
   resetData();

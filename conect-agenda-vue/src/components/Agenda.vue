@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import {
   updateFirestoreDoc,
   getDocumentsByAgendaId,
@@ -23,14 +23,102 @@ const getServicesByAgendaId = async (id) => {
   services.value = await getDocumentsByAgendaId(id);
 };
 
+const getExpiredCards = (panels) => {
+  const now = Date.now();
+
+  return panels
+    .map((panel) => {
+      let hasExpiredCard = false;
+
+      // Atualiza os cards do painel original
+      const updatedCards = panel.cards.map((card) => {
+        const hasExpiredTag = card.tags?.some(
+          (tag) => tag.hasOwnProperty("expireTime") && now > tag.expireTime
+        );
+
+        if (hasExpiredTag) {
+          hasExpiredCard = true; // Marca que o painel tem pelo menos um card expirado
+
+          panel.history_logs.push({
+            log: `Reserva: ${
+              card.card_content
+            } removida em ${new Date().toLocaleString()}`,
+            event_type: "expirado",
+            user: "sistema",
+          });
+
+          return {
+            ...card,
+            card_content: "REMOVIDO RESERVA",
+            tags: [
+              {
+                color: "#4CAF68",
+                id: "lFyEh36QC60dSJqiB7HV",
+                label: "DISPONÍVEL",
+              },
+            ],
+            created_by: "",
+          };
+        }
+
+        return card; // Retorna o card original se não expirou
+      });
+
+      return hasExpiredCard ? { ...panel, cards: updatedCards } : null;
+    })
+    .filter((panel) => panel !== null);
+};
+
+const resetExpiredCards = async (panels) => {
+  if (!panels.length) return;
+  await Promise.all(
+    panels.map((panel) => {
+      return updateFirestoreDoc(panel.id, panel, "services");
+    })
+  );
+
+  console.log("resetado cards expirados");
+};
+
 const getFirestoreData = async () => {
   getServicesByAgendaId(selectedAgenda.value.id);
 };
 
+const checkExpiredCards = async (panels) => {
+  console.log("Verificando e resetando cards expirados...");
+
+  const panelsWithExpiredCards = getExpiredCards(panels);
+
+  console.log(panelsWithExpiredCards);
+
+  await resetExpiredCards(panelsWithExpiredCards);
+};
+
 const unsub = onSnapshot(servicesCollection, (querySnapshot) => {
-  querySnapshot.docChanges().forEach((_) => {
-    getFirestoreData();
-  });
+  getFirestoreData();
+  checkExpiredCards();
+  // querySnapshot.docChanges().forEach((change) => {
+  //   const docData = change.doc.data();
+  //   const docId = change.doc.id;
+  //   const index = services.value.findIndex((s) => s.id === docId);
+
+  //   if (change.type === "modified") {
+  //     // Valida se o id já está setado no documento
+  //     if (docData.id === docId) {
+  //       if (index !== -1) {
+  //         // Atualiza
+  //         services.value[index] = { id: docId, ...docData };
+  //       } else {
+  //         // Adiciona no lugar certo se ainda não tiver na lista
+  //         services.value.splice(docData.order, 0, { id: docId, ...docData });
+  //       }
+  //     }
+  //   }
+
+  //   if (change.type === "removed") {
+  //     if (index !== -1) services.value.splice(index, 1);
+  //   }
+  // });
 });
 
 watch(hasTagUpdate, () => {
@@ -40,8 +128,10 @@ watch(hasTagUpdate, () => {
   }
 });
 
-watch(selectedAgenda, (val) => {
-  getServicesByAgendaId(val.id);
+watch(selectedAgenda, async (val) => {
+  console.log(val);
+  await getServicesByAgendaId(val.id);
+  store.setLastIndex(services.value.length + 1);
 });
 
 const handleTitleEdit = async (data) => {
@@ -73,7 +163,7 @@ const handleTitleEdit = async (data) => {
     <v-row align="start" class="pt-5">
       <v-col cols="12" class="d-flex align-start ga-3">
         <Panels
-          :data="services"
+          v-model="services"
           :key="key"
           v-if="services.length > 0"
           @title-edit="(panel) => handleTitleEdit(panel)"

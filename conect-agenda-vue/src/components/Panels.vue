@@ -4,11 +4,22 @@ import Cards from "./Cards.vue";
 import CardForm from "./CardForm.vue";
 import History from "./History.vue";
 import draggble from "vuedraggable";
-import { updateFirestoreDoc, deleteFirestoreDoc } from "@/firebase/firestore";
+import {
+  updateFirestoreDoc,
+  deleteFirestoreDoc,
+  setFirestoreDoc,
+} from "@/firebase/firestore";
 import { rules } from "./inputRules";
 import { useAuth } from "@/composables/auth";
+import { useAppStore } from "@/stores/app";
+import { storeToRefs } from "pinia";
+import { serverTimestamp } from "firebase/firestore";
+import { randomId } from "@/firebase/firestore";
 
-const { data } = defineProps(["data"]);
+const store = useAppStore();
+const { selectedAgenda } = storeToRefs(store);
+
+const data = defineModel();
 const emit = defineEmits(["titleEdit"]);
 
 const hoveringOn = ref(null);
@@ -29,13 +40,29 @@ const updateFirestore = async (newData) => {
   console.log("dados atualizados no firestore");
 };
 
+let beforeDragChange = [...data.value];
+
 const handleDraggOperation = () => {
-  updateFirestore(data);
+  const changes = [];
+
+  data.value.forEach((item, index) => {
+    const initialItem = beforeDragChange[index];
+
+    if (JSON.stringify(item) !== JSON.stringify(initialItem)) {
+      changes.push(item);
+    }
+  });
+
+  if (changes.length > 0) {
+    updateFirestore(changes);
+  }
+
+  beforeDragChange = [...data.value];
 };
 
 const handleFormSubmit = async (formData, submitType) => {
   try {
-    let panel = data.find(
+    let panel = data.value.find(
       (d) => d.panel_id == (formData.panelId || panelClick.value)
     );
     if (!panel) throw new Error("Painel não encontrado!");
@@ -132,150 +159,224 @@ const showHistoryDrawer = ({ history_logs }) => {
   historyData.value = history_logs;
   drawer.value = true;
 };
+
+async function reorderList(e) {
+  if (e.moved) {
+    const { newIndex, oldIndex, element } = e.moved;
+
+    const panel = data.value.find((d) => d.id === element.id);
+
+    const panel2 = data.value.find(
+      (d) => d.order === newIndex && d.id !== panel.id
+    );
+
+    panel.order = newIndex;
+
+    if (panel2) {
+      panel2.order = oldIndex;
+    }
+
+    const updates = [updateFirestoreDoc(panel.id, panel, "services")];
+    if (panel2) updates.push(updateFirestoreDoc(panel2.id, panel2, "services"));
+
+    await Promise.all(updates);
+  }
+}
+
+async function addSidePanel(panel) {
+  const insertIndex = panel.order;
+
+  data.value.forEach((d) => {
+    if (d.order > insertIndex) d.order++;
+  });
+
+  const newPanel = {
+    agenda_id: selectedAgenda.value.id,
+    date: serverTimestamp(),
+    panel_id: randomId(),
+    title: "Nova Lista duplicada",
+    cards: panel.cards,
+    order: insertIndex + 1,
+    history_logs: [],
+  };
+
+  const arrayInsertIndex = data.value.findIndex((d) => d.order > insertIndex);
+
+  if (arrayInsertIndex === -1) {
+    data.value.push(newPanel);
+  } else {
+    data.value.splice(arrayInsertIndex, 0, newPanel);
+  }
+
+  await setFirestoreDoc(newPanel.panel_id, newPanel, "services");
+}
 </script>
 
 <template>
-  <span
-    class="d-flex flex-column align-start ga-3"
-    v-for="panel in data"
-    :key="panel.panel_id"
+  <draggble
+    class="d-flex align-start ga-3"
+    v-model="data"
+    @change="reorderList"
+    group="panels"
+    item-key="id"
+    :animation="300"
   >
-    <v-card
-      :disabled="panel.lock"
-      width="300px"
-      rounded="xl"
-      @mouseenter="hoveringOn = panel.panel_id"
-      @mouseleave="hoveringOn = null"
-    >
-      <template #append>
-        <v-btn icon="mdi-dots-horizontal" variant="plain" size="small">
-          <v-icon>mdi-dots-horizontal</v-icon>
-          <v-menu activator="parent">
-            <v-list>
-              <v-list-item>
-                <v-btn
-                  prepend-icon="mdi-history"
-                  variant="plain"
-                  size="small"
-                  text="histórico"
-                  @click="showHistoryDrawer(panel)"
-                ></v-btn>
-              </v-list-item>
-              <v-list-item>
-                <v-btn
-                  prepend-icon="mdi-lock"
-                  variant="plain"
-                  size="small"
-                  type="submit"
-                  text="bloquear lista"
-                  @click="
-                    handleFormSubmit({ panelId: panel.panel_id }, 'blockPanel')
-                  "
-                ></v-btn>
-              </v-list-item>
-              <v-list-item>
-                <v-btn
-                  prepend-icon="mdi-pencil"
-                  variant="plain"
-                  size="small"
-                  text="editar título da lista"
-                  @click="handlePanelForm(panel)"
-                ></v-btn>
-              </v-list-item>
-              <v-list-item>
-                <v-btn
-                  prepend-icon="mdi-delete"
-                  @click="deleteFirestoreDoc(panel.id, 'services')"
-                  variant="plain"
-                  text="excluir lista"
-                  size="small"
-                ></v-btn>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-        </v-btn>
-      </template>
-
-      <template #title>
-        <p
-          v-if="panelForm !== panel.panel_id"
-          @click="handlePanelForm(panel)"
-          class="text-line"
+    <template #item="{ element: panel }">
+      <div>
+        <v-card
+          :disabled="panel.lock"
+          width="300px"
+          rounded="xl"
+          @mouseenter="hoveringOn = panel.panel_id"
+          @mouseleave="hoveringOn = null"
         >
-          {{ panel.title }}
-        </p>
-        <v-form
-          v-if="panelForm === panel.panel_id"
-          @submit.prevent="handleTitleEdit(panel)"
-        >
-          <v-text-field
-            autofocus
-            v-model="title"
-            variant="underlined"
-            :rules="rules"
-            @blur="handlePanelForm()"
-          ></v-text-field>
-        </v-form>
-      </template>
-
-      <v-card-text style="max-height: 600px; overflow-y: auto">
-        <draggble
-          v-if="panel.cards"
-          v-model="panel.cards"
-          :item-key="panel.panel_id"
-          group="cards"
-          @change="handleDraggOperation"
-        >
-          <template #item="{ element: card }">
-            <Cards
-              :data="card"
-              :panel="panel.panel_id"
-              @update-card="(card) => handleFormSubmit(card, 'updateCard')"
-              @delete-card="(card) => handleFormSubmit(card, 'deleteCard')"
-              @update-tags="(card) => handleFormSubmit(card, 'updateTags')"
-              :key="refreshTags"
-            />
+          <template #append>
+            <v-btn icon="mdi-dots-horizontal" variant="plain" size="small">
+              <v-icon>mdi-dots-horizontal</v-icon>
+              <v-menu activator="parent">
+                <v-list>
+                  <v-list-item>
+                    <v-btn
+                      prepend-icon="mdi-history"
+                      variant="plain"
+                      size="small"
+                      text="histórico"
+                      @click="showHistoryDrawer(panel)"
+                    ></v-btn>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-btn
+                      prepend-icon="mdi-lock"
+                      variant="plain"
+                      size="small"
+                      type="submit"
+                      text="bloquear lista"
+                      @click="
+                        handleFormSubmit(
+                          { panelId: panel.panel_id },
+                          'blockPanel'
+                        )
+                      "
+                    ></v-btn>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-btn
+                      prepend-icon="mdi-pencil"
+                      variant="plain"
+                      size="small"
+                      text="editar título da lista"
+                      @click="handlePanelForm(panel)"
+                    ></v-btn>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-btn
+                      prepend-icon="mdi-content-duplicate"
+                      variant="plain"
+                      size="small"
+                      text="duplicar lista"
+                      @click="addSidePanel(panel)"
+                    ></v-btn>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-btn
+                      prepend-icon="mdi-delete"
+                      @click="deleteFirestoreDoc(panel.id, 'services')"
+                      variant="plain"
+                      text="excluir lista"
+                      size="small"
+                    ></v-btn>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </v-btn>
           </template>
-        </draggble>
-        <CardForm
-          class="mt-4"
-          v-if="panelClick == panel.panel_id"
-          :panel="panelClick"
-          @close-form="panelClick = null"
-          @submit-form="(formData) => handleFormSubmit(formData, 'createCard')"
-        />
-      </v-card-text>
 
-      <v-card-actions>
+          <template #title>
+            <p
+              v-if="panelForm !== panel.panel_id"
+              @click="handlePanelForm(panel)"
+              class="text-line"
+            >
+              {{ panel.title }}
+            </p>
+            <v-form
+              v-if="panelForm === panel.panel_id"
+              @submit.prevent="handleTitleEdit(panel)"
+            >
+              <v-text-field
+                autofocus
+                v-model="title"
+                variant="underlined"
+                :rules="rules"
+                @blur="handlePanelForm()"
+              ></v-text-field>
+            </v-form>
+          </template>
+
+          <v-card-text style="max-height: 600px; overflow-y: auto">
+            <draggble
+              v-if="panel.cards"
+              v-model="panel.cards"
+              item-key="id"
+              group="cards"
+              :animation="300"
+              @change="handleDraggOperation"
+            >
+              <template #item="{ element: card }">
+                <Cards
+                  :data="card"
+                  :panel="panel.panel_id"
+                  @update-card="(card) => handleFormSubmit(card, 'updateCard')"
+                  @delete-card="(card) => handleFormSubmit(card, 'deleteCard')"
+                  @update-tags="(card) => handleFormSubmit(card, 'updateTags')"
+                  :key="refreshTags"
+                />
+              </template>
+            </draggble>
+            <CardForm
+              class="mt-4"
+              v-if="panelClick == panel.panel_id"
+              :panel="panelClick"
+              @close-form="panelClick = null"
+              @submit-form="
+                (formData) => handleFormSubmit(formData, 'createCard')
+              "
+            />
+          </v-card-text>
+
+          <v-card-actions>
+            <v-btn
+              prepend-icon="mdi-plus"
+              variant="plain"
+              block
+              rounded
+              @click="panelClick = panel.panel_id"
+            >
+              Adicionar cartão
+            </v-btn>
+          </v-card-actions>
+        </v-card>
         <v-btn
-          prepend-icon="mdi-plus"
-          variant="plain"
           block
           rounded
-          @click="panelClick = panel.panel_id"
+          variant="plain"
+          text="desbloquear"
+          prepend-icon="mdi-unlock"
+          @click="handleFormSubmit({ panelId: panel.panel_id }, 'blockPanel')"
+          v-if="panel.lock && panel.userLock == userName"
+        ></v-btn>
+        <v-btn
+          block
+          rounded
+          variant="plain"
+          prepend-icon="mdi-lock"
+          v-else-if="panel.userLock && userName !== panel.userLock"
+          >Bloqueado por {{ panel.userLock }}</v-btn
         >
-          Adicionar cartão
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-    <v-btn
-      block
-      rounded
-      variant="plain"
-      text="desbloquear"
-      prepend-icon="mdi-unlock"
-      @click="handleFormSubmit({ panelId: panel.panel_id }, 'blockPanel')"
-      v-if="panel.lock && panel.userLock == userName"
-    ></v-btn>
-    <v-btn
-      block
-      rounded
-      variant="plain"
-      prepend-icon="mdi-lock"
-      v-else-if="panel.userLock && userName !== panel.userLock"
-      >Bloqueado por {{ panel.userLock }}</v-btn
-    >
-  </span>
+      </div>
+    </template>
+  </draggble>
+
   <History v-model="drawer" :data="historyData" />
 </template>
 
