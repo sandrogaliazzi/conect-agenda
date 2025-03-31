@@ -1,11 +1,8 @@
 <script setup>
 import { ref, watch, onMounted } from "vue";
-import {
-  updateFirestoreDoc,
-  getDocumentsByAgendaId,
-} from "@/firebase/firestore";
+import { updateFirestoreDoc } from "@/firebase/firestore";
 import firestore from "@/firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { query, where, collection, onSnapshot } from "firebase/firestore";
 import { useAppStore } from "@/stores/app";
 import Panels from "./Panels.vue";
 import { storeToRefs } from "pinia";
@@ -19,52 +16,48 @@ const { hasTagUpdate, selectedAgenda } = storeToRefs(store);
 
 const servicesCollection = collection(firestore, "services");
 
-const getServicesByAgendaId = async (id) => {
-  services.value = await getDocumentsByAgendaId(id);
-};
-
 const getExpiredCards = (panels) => {
   const now = Date.now();
 
   return panels
     .map((panel) => {
-      let hasExpiredCard = false;
+      let hasExpiredCards = false;
 
-      // Atualiza os cards do painel original
+      // Atualiza os cards do painel mantendo os que não expiraram
       const updatedCards = panel.cards.map((card) => {
-        const hasExpiredTag = card.tags?.some(
+        const isExpired = card.tags?.some(
           (tag) => tag.hasOwnProperty("expireTime") && now > tag.expireTime
         );
 
-        if (hasExpiredTag) {
-          hasExpiredCard = true; // Marca que o painel tem pelo menos um card expirado
+        if (!isExpired) return card; // Mantém os cards não expirados
 
-          panel.history_logs.push({
-            log: `Reserva: ${
-              card.card_content
-            } removida em ${new Date().toLocaleString()}`,
-            event_type: "expirado",
-            user: "sistema",
-          });
+        hasExpiredCards = true; // Marca que este painel teve cards expirados
 
-          return {
-            ...card,
-            card_content: "REMOVIDO RESERVA",
-            tags: [
-              {
-                color: "#4CAF68",
-                id: "lFyEh36QC60dSJqiB7HV",
-                label: "DISPONÍVEL",
-              },
-            ],
-            created_by: "",
-          };
-        }
+        panel.history_logs.push({
+          log: `Reserva: ${
+            card.card_content
+          } removida em ${new Date().toLocaleString()}`,
+          event_type: "expirado",
+          user: "sistema",
+        });
 
-        return card; // Retorna o card original se não expirou
+        return {
+          ...card,
+          card_content: "REMOVIDO RESERVA",
+          tags: [
+            {
+              color: "#4CAF68",
+              id: "lFyEh36QC60dSJqiB7HV",
+              label: "DISPONÍVEL",
+            },
+          ],
+          created_by: "",
+        };
       });
 
-      return hasExpiredCard ? { ...panel, cards: updatedCards } : null;
+      if (!hasExpiredCards) return null; // Ignora painéis sem cards expirados
+
+      return { ...panel, cards: updatedCards };
     })
     .filter((panel) => panel !== null);
 };
@@ -80,8 +73,24 @@ const resetExpiredCards = async (panels) => {
   console.log("resetado cards expirados");
 };
 
-const getFirestoreData = async () => {
-  getServicesByAgendaId(selectedAgenda.value.id);
+let unsubscribe = null;
+
+const setupSnapshotListener = (agendaId) => {
+  if (unsubscribe) unsubscribe(); // Para a escuta anterior
+
+  const q = query(servicesCollection, where("agenda_id", "==", agendaId));
+
+  unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const updatedServices = [];
+
+    querySnapshot.forEach((doc) => {
+      updatedServices.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Ordena e atualiza somente os serviços da agenda selecionada
+    services.value = updatedServices.sort((a, b) => a.order - b.order);
+    store.setLastIndex(services.value.length * 1000 + 1000);
+  });
 };
 
 const checkExpiredCards = async (panels) => {
@@ -89,37 +98,8 @@ const checkExpiredCards = async (panels) => {
 
   const panelsWithExpiredCards = getExpiredCards(panels);
 
-  console.log(panelsWithExpiredCards);
-
   await resetExpiredCards(panelsWithExpiredCards);
 };
-
-const unsub = onSnapshot(servicesCollection, (querySnapshot) => {
-  getFirestoreData();
-  checkExpiredCards();
-  // querySnapshot.docChanges().forEach((change) => {
-  //   const docData = change.doc.data();
-  //   const docId = change.doc.id;
-  //   const index = services.value.findIndex((s) => s.id === docId);
-
-  //   if (change.type === "modified") {
-  //     // Valida se o id já está setado no documento
-  //     if (docData.id === docId) {
-  //       if (index !== -1) {
-  //         // Atualiza
-  //         services.value[index] = { id: docId, ...docData };
-  //       } else {
-  //         // Adiciona no lugar certo se ainda não tiver na lista
-  //         services.value.splice(docData.order, 0, { id: docId, ...docData });
-  //       }
-  //     }
-  //   }
-
-  //   if (change.type === "removed") {
-  //     if (index !== -1) services.value.splice(index, 1);
-  //   }
-  // });
-});
 
 watch(hasTagUpdate, () => {
   if (store.hasTagUpdate) {
@@ -128,10 +108,22 @@ watch(hasTagUpdate, () => {
   }
 });
 
+watch(services, (val) => {
+  if (val.length > 0) {
+    checkExpiredCards(val);
+  }
+});
+
 watch(selectedAgenda, async (val) => {
-  console.log(val);
-  await getServicesByAgendaId(val.id);
-  store.setLastIndex(services.value.length + 1);
+  if (val?.id) {
+    setupSnapshotListener(val.id);
+  }
+});
+
+onMounted(async () => {
+  if (selectedAgenda.value?.id) {
+    setupSnapshotListener(selectedAgenda.value.id);
+  }
 });
 
 const handleTitleEdit = async (data) => {

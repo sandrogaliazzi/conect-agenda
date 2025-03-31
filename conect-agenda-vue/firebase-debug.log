@@ -1,0 +1,75 @@
+[debug] [2025-03-31T11:54:28.504Z] ----------------------------------------------------------------------
+[debug] [2025-03-31T11:54:28.507Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\sandr\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start
+[debug] [2025-03-31T11:54:28.508Z] CLI Version:   13.34.0
+[debug] [2025-03-31T11:54:28.508Z] Platform:      win32
+[debug] [2025-03-31T11:54:28.509Z] Node Version:  v18.13.0
+[debug] [2025-03-31T11:54:28.510Z] Time:          Mon Mar 31 2025 08:54:28 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2025-03-31T11:54:28.510Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-03-31T11:54:28.515Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-03-31T11:54:28.861Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-03-31T11:54:28.861Z] > authorizing via signed-in user (sroque.roque@gmail.com)
+[debug] [2025-03-31T11:54:29.103Z] java version "17.0.12" 2024-07-16 LTS
+
+[debug] [2025-03-31T11:54:29.103Z] Java(TM) SE Runtime Environment (build 17.0.12+8-LTS-286)
+Java HotSpot(TM) 64-Bit Server VM (build 17.0.12+8-LTS-286, mixed mode, sharing)
+
+[debug] [2025-03-31T11:54:29.126Z] Parsed Java major version: 17
+[info] i  emulators: Starting emulators: firestore, hosting {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: firestore, hosting"}}
+[debug] [2025-03-31T11:54:29.141Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-03-31T11:54:29.141Z] [firestore] Firestore Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-03-31T11:54:29.141Z] [firestore.websocket] websocket server for firestore only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-03-31T11:54:29.141Z] [hosting] Hosting Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-03-31T11:54:29.142Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":9080},{"address":"::1","family":"IPv6","port":9080}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5000}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2025-03-31T11:54:29.150Z] [hub] writing locator at C:\Users\sandr\AppData\Local\Temp\hub-app-agenda-conectnet.json
+[warn] !  firestore: Cloud Firestore Emulator does not support multiple databases yet. {"metadata":{"emulator":{"name":"firestore"},"message":"Cloud Firestore Emulator does not support multiple databases yet."}}
+[warn] !  firestore: Did not find a Cloud Firestore rules file specified in a firebase.json config file. {"metadata":{"emulator":{"name":"firestore"},"message":"Did not find a Cloud Firestore rules file specified in a firebase.json config file."}}
+[warn] !  firestore: The emulator will default to allowing all reads and writes. Learn more about this option: https://firebase.google.com/docs/emulator-suite/install_and_configure#security_rules_configuration. {"metadata":{"emulator":{"name":"firestore"},"message":"The emulator will default to allowing all reads and writes. Learn more about this option: https://firebase.google.com/docs/emulator-suite/install_and_configure#security_rules_configuration."}}
+[debug] [2025-03-31T11:54:29.163Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2025-03-31T11:54:29.164Z] Ignoring unsupported arg: single_project_mode_error {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: single_project_mode_error"}}
+[debug] [2025-03-31T11:54:29.164Z] Starting Firestore Emulator with command {"binary":"java","args":["-Dgoogle.cloud_firestore.debug_log_level=FINE","-Duser.language=en","-jar","C:\\Users\\sandr\\.cache\\firebase\\emulators\\cloud-firestore-emulator-v1.19.8.jar","--host","127.0.0.1","--port",8080,"--websocket_port",9150,"--project_id","app-agenda-conectnet","--single_project_mode",true],"optionalArgs":["port","webchannel_port","host","rules","websocket_port","functions_emulator","seed_from_export","project_id","single_project_mode"],"joinArgs":false,"shell":false,"port":8080} {"metadata":{"emulator":{"name":"firestore"},"message":"Starting Firestore Emulator with command {\"binary\":\"java\",\"args\":[\"-Dgoogle.cloud_firestore.debug_log_level=FINE\",\"-Duser.language=en\",\"-jar\",\"C:\\\\Users\\\\sandr\\\\.cache\\\\firebase\\\\emulators\\\\cloud-firestore-emulator-v1.19.8.jar\",\"--host\",\"127.0.0.1\",\"--port\",8080,\"--websocket_port\",9150,\"--project_id\",\"app-agenda-conectnet\",\"--single_project_mode\",true],\"optionalArgs\":[\"port\",\"webchannel_port\",\"host\",\"rules\",\"websocket_port\",\"functions_emulator\",\"seed_from_export\",\"project_id\",\"single_project_mode\"],\"joinArgs\":false,\"shell\":false,\"port\":8080}"}}
+[info] i  firestore: Firestore Emulator logging to firestore-debug.log {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator logging to \u001b[1mfirestore-debug.log\u001b[22m"}}
+[debug] [2025-03-31T11:54:29.266Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-03-31T11:54:29.266Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[info] +  firestore: Firestore Emulator UI websocket is running on 9150. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator UI websocket is running on 9150."}}
+[debug] [2025-03-31T11:54:30.843Z] Checked if tokens are valid: false, expires at: 1743215558126
+[debug] [2025-03-31T11:54:30.843Z] Checked if tokens are valid: false, expires at: 1743215558126
+[debug] [2025-03-31T11:54:30.844Z] > refreshing access token with scopes: []
+[debug] [2025-03-31T11:54:30.845Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-03-31T11:54:30.845Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-03-31T11:54:31.058Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-03-31T11:54:31.058Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-03-31T11:54:31.071Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/app-agenda-conectnet/sites 
+[debug] [2025-03-31T11:54:32.746Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/app-agenda-conectnet/sites 200
+[debug] [2025-03-31T11:54:32.746Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/app-agenda-conectnet/sites {"sites":[{"name":"projects/app-agenda-conectnet/sites/app-agenda-conectnet","defaultUrl":"https://app-agenda-conectnet.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-03-31T11:54:32.747Z] Checked if tokens are valid: true, expires at: 1743425670058
+[debug] [2025-03-31T11:54:32.747Z] Checked if tokens are valid: true, expires at: 1743425670058
+[debug] [2025-03-31T11:54:32.747Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/app-agenda-conectnet/webApps/-/config [none]
+[debug] [2025-03-31T11:54:33.561Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/app-agenda-conectnet/webApps/-/config 200
+[debug] [2025-03-31T11:54:33.561Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/app-agenda-conectnet/webApps/-/config {"projectId":"app-agenda-conectnet","appId":"1:212243071956:web:b984d00b79118f09bdcc41","storageBucket":"app-agenda-conectnet.firebasestorage.app","apiKey":"AIzaSyD4xtz_KMaAqw31LGduGEw614v3-AoDypM","authDomain":"app-agenda-conectnet.firebaseapp.com","messagingSenderId":"212243071956","measurementId":"G-HSX4EJ1QMK"}
+[debug] [2025-03-31T11:54:33.568Z] Checked if tokens are valid: true, expires at: 1743425670058
+[debug] [2025-03-31T11:54:33.568Z] Checked if tokens are valid: true, expires at: 1743425670058
+[debug] [2025-03-31T11:54:33.568Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/app-agenda-conectnet [none]
+[debug] [2025-03-31T11:54:34.027Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/app-agenda-conectnet 200
+[debug] [2025-03-31T11:54:34.027Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/app-agenda-conectnet {"projectId":"app-agenda-conectnet","projectNumber":"212243071956","displayName":"app-agenda-conectnet","name":"projects/app-agenda-conectnet","resources":{"hostingSite":"app-agenda-conectnet"},"state":"ACTIVE","etag":"1_28122ba7-c77f-4ed3-8654-708b7712e70d"}
+[info] i  hosting[app-agenda-conectnet]: Serving hosting files from: dist {"metadata":{"emulator":{"name":"hosting"},"message":"Serving hosting files from: \u001b[1mdist\u001b[22m"}}
+[info] +  hosting[app-agenda-conectnet]: Local server: http://127.0.0.1:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://127.0.0.1:5000\u001b[22m\u001b[24m"}}
+[debug] [2025-03-31T11:54:34.084Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: connect ECONNREFUSED ::1:40001. If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:9080/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌───────────┬────────────────┬─────────────────────────────────┐
+│ Emulator  │ Host:Port      │ View in Emulator UI             │
+├───────────┼────────────────┼─────────────────────────────────┤
+│ Firestore │ 127.0.0.1:8080 │ http://127.0.0.1:9080/firestore │
+├───────────┼────────────────┼─────────────────────────────────┤
+│ Hosting   │ 127.0.0.1:5000 │ n/a                             │
+└───────────┴────────────────┴─────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500, 9150
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 

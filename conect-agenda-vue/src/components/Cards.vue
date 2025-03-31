@@ -127,8 +127,13 @@ const setTags = async (tags) => {
         <span>
           {{ data.card_content.toUpperCase() }}
         </span>
+        <br />
         <span v-if="data.created_by">
-          <v-badge :content="data.created_by" floating offset-x="-15"></v-badge>
+          <v-badge
+            :content="data.created_by"
+            offset-x="-10"
+            size="small"
+          ></v-badge>
         </span>
       </div>
       <template v-else>

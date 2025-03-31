@@ -1,11 +1,11 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
 import {
   getFirestoreCollectionDocs,
   createFirestoreDoc,
   updateFirestoreDoc,
 } from "@/firebase/firestore";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, writeBatch, doc } from "firebase/firestore";
 import firestore from "@/firebase";
 import TagCreator from "./TagCreator.vue";
 import { useAppStore } from "@/stores/app";
@@ -13,6 +13,10 @@ import { useAppStore } from "@/stores/app";
 const { cardId, cardTags } = defineProps(["cardId", "cardTags"]);
 
 const store = useAppStore();
+
+onMounted(async () => {
+  await getFirestoreTags();
+});
 
 const dialog = ref(false);
 const tags = ref([]);
@@ -57,9 +61,7 @@ watch(selectedTag, () => {
 
 const setExpireTimeToTags = (tags) => {
   console.log(tags);
-  const filterTagByLabel = tags.filter(
-    (tag) => tag.label == "RESERVADO" && !tag.expireTime
-  );
+  const filterTagByLabel = tags.filter((tag) => tag.label == "RESERVADO");
 
   if (!filterTagByLabel.length) return tags;
 
@@ -74,6 +76,46 @@ const setExpireTimeToTags = (tags) => {
     };
   });
 };
+
+async function updateMultipleDocuments(documents) {
+  // Crie um batch de operações
+  const batch = writeBatch(firestore);
+
+  // Itere sobre os documentos que você deseja atualizar
+  documents.forEach((document) => {
+    const docRef = doc(firestore, "services", document.id); // Referência do documento
+    batch.update(docRef, {
+      order: document.order,
+    });
+  });
+
+  // Execute o batch
+  try {
+    await batch.commit(); // Executa todas as operações atômicas
+    console.log("Atualizações em massa feitas com sucesso.");
+  } catch (error) {
+    console.error("Erro ao atualizar documentos em massa:", error);
+  }
+}
+
+async function modifyOrder() {
+  const services = await getFirestoreCollectionDocs("services");
+  const data = services.filter((s) => s.order);
+
+  const updateBatch = data.map((d) => {
+    let newOrder;
+
+    if (d.order === 0) newOrder = 1000;
+    else newOrder = d.order * 1000;
+
+    return {
+      ...d,
+      order: newOrder,
+    };
+  });
+
+  updateMultipleDocuments(updateBatch);
+}
 
 watch(tagSelection, () => {
   emit("tagSelection", setExpireTimeToTags(tagSelection.value));

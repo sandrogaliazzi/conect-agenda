@@ -63,7 +63,7 @@ const handleSubmit = async () => {
         title: title,
         cards: panelsRef[i % panelsRef.length].cards,
         history_logs: [],
-        order: i,
+        order: i === 0 ? 1000 : i * 1000,
       },
       "services"
     );

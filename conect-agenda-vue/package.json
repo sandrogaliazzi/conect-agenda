@@ -13,6 +13,7 @@
     "@mdi/font": "7.4.47",
     "roboto-fontface": "*",
     "vue": "^3.4.31",
+    "vue-window-size": "^2.0.0",
     "vuefire": "^3.2.1",
     "vuetify": "^3.6.14"
   },

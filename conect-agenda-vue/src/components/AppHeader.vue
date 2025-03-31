@@ -88,7 +88,7 @@ const selectNewAgenda = (agenda) => {
 </script>
 
 <template>
-  <v-app-bar :elevation="0">
+  <v-app-bar :elevation="0" color="indigo-darken-4">
     <template v-slot:prepend>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"> </v-app-bar-nav-icon>
     </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, toRefs } from "vue";
 import Cards from "./Cards.vue";
 import CardForm from "./CardForm.vue";
 import History from "./History.vue";
@@ -15,6 +15,8 @@ import { useAppStore } from "@/stores/app";
 import { storeToRefs } from "pinia";
 import { serverTimestamp } from "firebase/firestore";
 import { randomId } from "@/firebase/firestore";
+import { useWindowSize } from "vue-window-size";
+import { fi } from "vuetify/locale";
 
 const store = useAppStore();
 const { selectedAgenda } = storeToRefs(store);
@@ -110,7 +112,11 @@ const handleFormSubmit = async (formData, submitType) => {
         const card = findCard(id);
         if (!card) throw new Error("Cartão não encontrado!");
 
-        card.tags = content;
+        const tagDisponivel = content.filter(
+          (tag) => tag.label.toUpperCase() !== "DISPONÍVEL"
+        );
+
+        card.tags = !tagDisponivel.length ? content : tagDisponivel;
         break;
       }
 
@@ -160,35 +166,58 @@ const showHistoryDrawer = ({ history_logs }) => {
   drawer.value = true;
 };
 
+const { width } = toRefs(useWindowSize());
+
 async function reorderList(e) {
   if (e.moved) {
-    const { newIndex, oldIndex, element } = e.moved;
-
+    const { newIndex, element } = e.moved;
     const panel = data.value.find((d) => d.id === element.id);
 
-    const panel2 = data.value.find(
-      (d) => d.order === newIndex && d.id !== panel.id
-    );
+    // Normaliza se o gap for menor que um limite (ex: 10)
+    const MIN_GAP = 10;
+    let needsNormalization = false;
 
-    panel.order = newIndex;
-
-    if (panel2) {
-      panel2.order = oldIndex;
+    for (let i = 1; i < data.value.length; i++) {
+      if (data.value[i].order - data.value[i - 1].order < MIN_GAP) {
+        needsNormalization = true;
+        break;
+      }
     }
 
-    const updates = [updateFirestoreDoc(panel.id, panel, "services")];
-    if (panel2) updates.push(updateFirestoreDoc(panel2.id, panel2, "services"));
+    if (needsNormalization) {
+      // Redefine todas as ordens com gap fixo (ex: 1000, 2000, 3000...)
+      data.value.forEach((item, index) => {
+        item.order = (index + 1) * 1000;
+      });
+    } else {
+      // Se houver espaço, ajusta apenas o item movido
+      if (newIndex === 0) {
+        panel.order = data.value[1].order - 1000;
+      } else if (newIndex === data.value.length - 1) {
+        const lastItem = data.value.reduce(
+          (prev, curr) => (curr.order > prev.order ? curr : prev),
+          data.value[0]
+        );
+        panel.order = lastItem.order + 1000;
+      } else {
+        const prevOrder = data.value[newIndex - 1].order;
+        const nextOrder = data.value[newIndex + 1].order;
+        panel.order = prevOrder + Math.floor((nextOrder - prevOrder) / 2);
+      }
+    }
 
-    await Promise.all(updates);
+    await updateFirestoreDoc(panel.id, panel, "services");
   }
 }
 
 async function addSidePanel(panel) {
   const insertIndex = panel.order;
 
-  data.value.forEach((d) => {
-    if (d.order > insertIndex) d.order++;
-  });
+  // 🔹 Busca o próximo painel para calcular a média
+  const nextPanel = data.value.find((d) => d.order > insertIndex);
+  const newOrder = nextPanel
+    ? Math.floor((insertIndex + nextPanel.order) / 2) // Média entre os dois
+    : insertIndex + 1000; // Se for o último, apenas soma um intervalo padrão
 
   const newPanel = {
     agenda_id: selectedAgenda.value.id,
@@ -196,10 +225,11 @@ async function addSidePanel(panel) {
     panel_id: randomId(),
     title: "Nova Lista duplicada",
     cards: panel.cards,
-    order: insertIndex + 1,
+    order: newOrder,
     history_logs: [],
   };
 
+  // 🔹 Encontra a posição na lista para inserir o novo painel
   const arrayInsertIndex = data.value.findIndex((d) => d.order > insertIndex);
 
   if (arrayInsertIndex === -1) {
@@ -218,6 +248,7 @@ async function addSidePanel(panel) {
     v-model="data"
     @change="reorderList"
     group="panels"
+    :disabled="width < 600"
     item-key="id"
     :animation="300"
   >
