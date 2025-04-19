@@ -250,29 +250,52 @@ async function reorderList(e) {
 }
 
 async function addSidePanel(panel) {
-  const insertIndex = panel.order;
+  // Ordena os painéis usando comparação direta
+  const sortedPanels = [...data.value].sort((a, b) =>
+    a.order < b.order ? -1 : 1
+  );
 
-  const nextPanel = data.value.find((d) => d.order > insertIndex);
-  const newOrder = nextPanel
-    ? Math.floor((insertIndex + nextPanel.order) / 2)
-    : insertIndex + 1000;
+  // Encontra o painel atual na lista ordenada
+  const currentIndex = sortedPanels.findIndex(
+    (p) => p.panel_id === panel.panel_id
+  );
 
+  // Determina as chaves vizinhas
+  let beforeOrder = null;
+  let afterOrder = null;
+
+  if (currentIndex < sortedPanels.length - 1) {
+    // Se não for o último item, insere entre o atual e o próximo
+    beforeOrder = sortedPanels[currentIndex].order;
+    afterOrder = sortedPanels[currentIndex + 1].order;
+  } else {
+    // Se for o último item, insere após ele
+    beforeOrder = sortedPanels[currentIndex].order;
+    afterOrder = null;
+  }
+
+  // Gera a nova chave de ordenação
+  const newOrder = generateKeyBetween(beforeOrder, afterOrder);
+
+  // Cria o novo painel
   const newPanel = {
     agenda_id: selectedAgenda.value.id,
     date: serverTimestamp(),
     panel_id: randomId(),
     title: "Nova Lista duplicada",
-    cards: panel.cards,
+    cards: [...panel.cards], // Copia os cards
     order: newOrder,
     history_logs: [],
   };
 
-  const arrayInsertIndex = data.value.findIndex((d) => d.order > insertIndex);
+  // Encontra a posição de inserção na lista original
+  const insertIndex = data.value.findIndex((d) => d.order > newOrder);
 
-  if (arrayInsertIndex === -1) {
+  // Insere na posição correta
+  if (insertIndex === -1) {
     data.value.push(newPanel);
   } else {
-    data.value.splice(arrayInsertIndex, 0, newPanel);
+    data.value.splice(insertIndex, 0, newPanel);
   }
 
   await setFirestoreDoc(newPanel.panel_id, newPanel, "services");
