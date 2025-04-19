@@ -9,6 +9,7 @@ import {
   randomServicesId,
 } from "@/firebase/firestore";
 import { serverTimestamp } from "firebase/firestore";
+import { generateKeyBetween } from "fractional-indexing";
 
 const store = useAppStore();
 const { blueprints, selectedAgenda } = storeToRefs(store);
@@ -36,10 +37,27 @@ const close = () => {
   dialog.value = false;
 };
 
+function generateSequentialKeys(count) {
+  const keys = [];
+  let lastKey = null;
+
+  for (let i = 0; i < count; i++) {
+    const newKey = generateKeyBetween(lastKey, null);
+    keys.push(newKey);
+    lastKey = newKey;
+  }
+
+  return keys;
+}
+
 const handleSubmit = async () => {
+  console.log(blueprint.value);
+
   const { id } = blueprints.value.find((b) => b.title == blueprint.value);
 
   const panelsRef = await getDocumentsByAgendaId(id);
+
+  const orders = generateSequentialKeys(number.value);
 
   let tech = "";
   let title = "";
@@ -63,7 +81,7 @@ const handleSubmit = async () => {
         title: title,
         cards: panelsRef[i % panelsRef.length].cards,
         history_logs: [],
-        order: i === 0 ? 1000 : i * 1000,
+        order: orders[i],
       },
       "services"
     );

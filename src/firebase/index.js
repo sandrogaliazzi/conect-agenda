@@ -2,11 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 export const firebaseConfig = {
   apiKey: "AIzaSyD4xtz_KMaAqw31LGduGEw614v3-AoDypM",
   authDomain: "app-agenda-conectnet.firebaseapp.com",
@@ -26,8 +22,8 @@ const firestore = getFirestore(firebase);
 
 export { auth, onAuthStateChanged };
 
-if (import.meta.env.MODE === "development") {
-  connectFirestoreEmulator(firestore, "localhost", 8080);
-}
+// if (import.meta.env.MODE === "development") {
+//   connectFirestoreEmulator(firestore, "localhost", 8080);
+// }
 
 export default firestore;

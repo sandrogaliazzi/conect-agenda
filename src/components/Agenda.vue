@@ -7,6 +7,7 @@ import { useAppStore } from "@/stores/app";
 import Panels from "./Panels.vue";
 import { storeToRefs } from "pinia";
 import AddPanel from "./AddPanel.vue";
+import { generateKeyBetween } from "fractional-indexing";
 
 const store = useAppStore();
 const key = ref(1);
@@ -89,8 +90,11 @@ const setupSnapshotListener = (agendaId) => {
     });
 
     // Ordena e atualiza somente os serviços da agenda selecionada
-    services.value = updatedServices.sort((a, b) => a.order - b.order);
-    store.setLastIndex(services.value.length * 1000 + 1000);
+    services.value = updatedServices.sort((a, b) =>
+      a.order < b.order ? -1 : 1
+    );
+    const lastItem = services.value[services.value.length - 1];
+    store.setLastIndex(generateKeyBetween(lastItem?.order ?? null, null));
   });
 };
 
@@ -111,8 +115,8 @@ watch(hasTagUpdate, () => {
 
 watch(services, (val) => {
   if (val.length > 0) {
-    checkExpiredCards(val);
-    console.log(val);
+    //checkExpiredCards(val);
+    //console.log(val);
   }
 });
 

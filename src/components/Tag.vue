@@ -16,7 +16,6 @@ const store = useAppStore();
 
 onMounted(async () => {
   await getFirestoreTags();
-  console.log(tags.value);
 });
 
 const dialog = ref(false);

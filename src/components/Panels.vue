@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, toRefs } from "vue";
+import { ref, computed, toRefs, onMounted, watch } from "vue";
 import Cards from "./Cards.vue";
 import CardForm from "./CardForm.vue";
 import History from "./History.vue";
@@ -16,7 +16,7 @@ import { storeToRefs } from "pinia";
 import { serverTimestamp } from "firebase/firestore";
 import { randomId } from "@/firebase/firestore";
 import { useWindowSize } from "vue-window-size";
-import { fi } from "vuetify/locale";
+import { generateKeyBetween } from "fractional-indexing";
 
 const store = useAppStore();
 const { selectedAgenda } = storeToRefs(store);
@@ -33,6 +33,12 @@ const refreshTags = ref(0);
 const blockCardId = ref(false);
 const { user } = useAuth();
 
+const beforeDragChange = ref([...data.value]);
+
+watch(data, () => {
+  beforeDragChange.value = [...data.value];
+});
+
 const userName = computed(() => user.value.email.split("@")[0]);
 
 const updateFirestore = async (newData) => {
@@ -42,13 +48,11 @@ const updateFirestore = async (newData) => {
   console.log("dados atualizados no firestore");
 };
 
-let beforeDragChange = [...data.value];
-
 const handleDraggOperation = () => {
   const changes = [];
 
   data.value.forEach((item, index) => {
-    const initialItem = beforeDragChange[index];
+    const initialItem = beforeDragChange.value[index];
 
     if (JSON.stringify(item) !== JSON.stringify(initialItem)) {
       changes.push(item);
@@ -59,7 +63,7 @@ const handleDraggOperation = () => {
     updateFirestore(changes);
   }
 
-  beforeDragChange = [...data.value];
+  beforeDragChange.value = [...data.value];
 };
 
 const handleFormSubmit = async (formData, submitType) => {
@@ -193,55 +197,65 @@ const showHistoryDrawer = ({ history_logs }) => {
 
 const { width } = toRefs(useWindowSize());
 
-async function reorderList(e) {
-  if (e.moved) {
-    const { newIndex, element } = e.moved;
-    const panel = beforeDragChange.find((d) => d.id === element.id);
-
-    const MIN_GAP = 10;
-    let needsNormalization = false;
-
-    for (let i = 1; i < beforeDragChange.length; i++) {
-      if (beforeDragChange[i].order - beforeDragChange[i - 1].order < MIN_GAP) {
-        needsNormalization = true;
-        break;
-      }
-    }
-
-    const lastItem = beforeDragChange.reduce(
-      (prev, curr) => (curr.order > prev.order ? curr : prev),
-      beforeDragChange[0]
-    );
-
-    if (needsNormalization) {
-      beforeDragChange.forEach((item, index) => {
-        item.order = (index + 1) * 1000;
-      });
-    } else {
-      if (newIndex === 0) {
-        panel.order = Math.max(10, beforeDragChange[0].order - 10);
-      } else if (newIndex === beforeDragChange.length - 1) {
-        panel.order = lastItem.order + 1000;
-      } else {
-        const prevOrder = beforeDragChange[newIndex - 1].order;
-        const nextOrder = beforeDragChange[newIndex + 1].order;
-        panel.order = prevOrder + Math.floor((nextOrder - prevOrder) / 2);
-      }
-    }
-
-    await updateFirestoreDoc(panel.id, panel, "services");
-    beforeDragChange = [...data.value];
+const isOrderTooClose = (list, minGap = 10) => {
+  const sorted = [...list].sort((a, b) => a.order - b.order);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].order - sorted[i - 1].order < minGap) return true;
   }
+  return false;
+};
+
+async function reorderList(e) {
+  if (!e.moved) return;
+
+  const { newIndex, element } = e.moved;
+
+  // Ordena a lista atual usando a comparação correta
+  const sorted = [...beforeDragChange.value].sort((a, b) =>
+    a.order < b.order ? -1 : 1
+  );
+
+  // Encontra o item movido e filtra a lista sem ele
+  const movedItem = sorted.find((item) => item.id === element.id);
+  const filtered = sorted.filter((item) => item.id !== movedItem.id);
+
+  // Determina a nova posição
+  let newOrder;
+
+  // Caso 1: Mover para o início da lista
+  if (newIndex === 0) {
+    newOrder = generateKeyBetween(null, filtered[0]?.order);
+  }
+  // Caso 2: Mover para o final da lista
+  else if (newIndex >= filtered.length) {
+    newOrder = generateKeyBetween(filtered[filtered.length - 1]?.order, null);
+  }
+  // Caso 3: Mover entre dois itens
+  else {
+    const before = filtered[newIndex - 1];
+    const after = filtered[newIndex];
+    newOrder = generateKeyBetween(before?.order, after?.order);
+  }
+
+  // Atualiza o item movido
+  movedItem.order = newOrder;
+
+  // Mantém a lista ordenada após a mudança
+  const reordered = [...filtered];
+  reordered.splice(newIndex, 0, movedItem);
+
+  // Atualiza o Firestore e o estado local
+  await updateFirestoreDoc(movedItem.id, movedItem, "services");
+  beforeDragChange.value = reordered;
 }
 
 async function addSidePanel(panel) {
   const insertIndex = panel.order;
 
-  // 🔹 Busca o próximo painel para calcular a média
   const nextPanel = data.value.find((d) => d.order > insertIndex);
   const newOrder = nextPanel
-    ? Math.floor((insertIndex + nextPanel.order) / 2) // Média entre os dois
-    : insertIndex + 1000; // Se for o último, apenas soma um intervalo padrão
+    ? Math.floor((insertIndex + nextPanel.order) / 2)
+    : insertIndex + 1000;
 
   const newPanel = {
     agenda_id: selectedAgenda.value.id,
@@ -253,7 +267,6 @@ async function addSidePanel(panel) {
     history_logs: [],
   };
 
-  // 🔹 Encontra a posição na lista para inserir o novo painel
   const arrayInsertIndex = data.value.findIndex((d) => d.order > insertIndex);
 
   if (arrayInsertIndex === -1) {
