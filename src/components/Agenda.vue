@@ -141,7 +141,7 @@ const handleTitleEdit = async (data) => {
 
   if (!oldPanelRef) return;
 
-  oldPanelRef.title = title;
+  oldPanelRef.title = title.value;
 
   try {
     await updateFirestoreDoc(oldPanelRef.id, oldPanelRef, "services");

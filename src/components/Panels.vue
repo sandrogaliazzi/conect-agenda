@@ -48,11 +48,13 @@ const updateFirestore = async (newData) => {
   console.log("dados atualizados no firestore");
 };
 
+let dataSnapshot = JSON.parse(JSON.stringify(data.value));
+
 const handleDraggOperation = () => {
   const changes = [];
 
   data.value.forEach((item, index) => {
-    const initialItem = beforeDragChange.value[index];
+    const initialItem = dataSnapshot[index];
 
     if (JSON.stringify(item) !== JSON.stringify(initialItem)) {
       changes.push(item);
@@ -61,9 +63,9 @@ const handleDraggOperation = () => {
 
   if (changes.length > 0) {
     updateFirestore(changes);
-  }
+  } else console.log("Nenhuma alteração detectada");
 
-  beforeDragChange.value = [...data.value];
+  dataSnapshot = JSON.parse(JSON.stringify(data.value));
 };
 
 const handleFormSubmit = async (formData, submitType) => {
